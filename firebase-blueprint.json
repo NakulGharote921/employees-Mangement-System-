@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "employee": {
+      "title": "Employee",
+      "description": "Details about an employee in the organization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "positionId": { "type": "string" },
+        "salary": { "type": "number" },
+        "hireDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "inactive", "on-leave"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["firstName", "lastName", "email", "departmentId", "positionId", "status"]
+    },
+    "department": {
+      "title": "Department",
+      "description": "Organizational unit.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "managerId": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "position": {
+      "title": "Position",
+      "description": "Job role within a department.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "baseSalary": { "type": "number" }
+      },
+      "required": ["title", "departmentId"]
+    },
+    "leave": {
+      "title": "Leave Request",
+      "description": "Request for time off by an employee.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "type": { "type": "string", "enum": ["sick", "vacation", "personal", "maternity", "paternity"] },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "reason": { "type": "string" },
+        "approvedBy": { "type": "string" }
+      },
+      "required": ["employeeId", "type", "startDate", "endDate", "status"]
+    },
+    "payroll": {
+      "title": "Payroll Run",
+      "description": "Record of a payroll payment to an employee.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "amount": { "type": "number" },
+        "periodStart": { "type": "string", "format": "date-time" },
+        "periodEnd": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "processed", "failed"] },
+        "paidAt": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" }
+      },
+      "required": ["employeeId", "amount", "periodStart", "periodEnd", "status"]
+    }
+  },
+  "firestore": {
+    "employees": {
+      "schema": "employee",
+      "description": "Collection of employee records."
+    },
+    "departments": {
+      "schema": "department",
+      "description": "Collection of organizational departments."
+    },
+    "positions": {
+      "schema": "position",
+      "description": "Collection of job positions."
+    },
+    "leaves": {
+      "schema": "leave",
+      "description": "Collection of employee leave requests."
+    },
+    "payrolls": {
+      "schema": "payroll",
+      "description": "Collection of payroll records."
+    }
+  }
+}

@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Employee Validation ---
+    function isValidEmployee(data) {
+      return data.keys().hasAll(['firstName', 'lastName', 'email', 'departmentId', 'positionId', 'status']) &&
+             data.firstName is string && data.firstName.size() <= 100 &&
+             data.lastName is string && data.lastName.size() <= 100 &&
+             data.email is string && data.email.matches('^[^@]+@[^@]+\\.[^@]+$') &&
+             data.departmentId is string &&
+             data.positionId is string &&
+             data.status in ['active', 'inactive', 'on-leave'] &&
+             (data.get('salary', 0) is number && data.get('salary', 0) >= 0);
+    }
+
+    match /employees/{employeeId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidEmployee(incoming());
+      allow update: if isSignedIn() && isValidEmployee(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['firstName', 'lastName', 'email', 'phone', 'departmentId', 'positionId', 'salary', 'status', 'updatedAt'])
+      );
+      allow delete: if isSignedIn();
+    }
+
+    // --- Department Validation ---
+    function isValidDepartment(data) {
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() <= 100;
+    }
+
+    match /departments/{deptId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidDepartment(incoming());
+      allow update: if isSignedIn() && isValidDepartment(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'managerId']);
+      allow delete: if isSignedIn();
+    }
+
+    // --- Position Validation ---
+    function isValidPosition(data) {
+      return data.keys().hasAll(['title', 'departmentId']) &&
+             data.title is string && data.title.size() <= 100;
+    }
+
+    match /positions/{posId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidPosition(incoming());
+      allow update: if isSignedIn() && isValidPosition(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'departmentId', 'baseSalary']);
+      allow delete: if isSignedIn();
+    }
+
+    // --- Leave Validation ---
+    function isValidLeave(data) {
+      return data.keys().hasAll(['employeeId', 'type', 'startDate', 'endDate', 'status']) &&
+             data.employeeId is string &&
+             data.type in ['sick', 'vacation', 'personal', 'maternity', 'paternity'] &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             data.startDate is string &&
+             data.endDate is string &&
+             (data.get('reason', '') is string) &&
+             (data.get('createdAt', request.time) <= request.time) &&
+             (data.get('updatedAt', request.time) <= request.time);
+    }
+
+    match /leaves/{leaveId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidLeave(incoming());
+      allow update: if isSignedIn() && isValidLeave(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'approvedBy', 'endDate', 'updatedAt']);
+      allow delete: if isSignedIn();
+    }
+
+    // --- Payroll Validation ---
+    function isValidPayroll(data) {
+      return data.keys().hasAll(['employeeId', 'amount', 'periodStart', 'periodEnd', 'status']) &&
+             data.amount is number && data.amount >= 0 &&
+             data.status in ['pending', 'processed', 'failed'];
+    }
+
+    match /payrolls/{payrollId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidPayroll(incoming());
+      allow update: if isSignedIn() && isValidPayroll(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'paidAt', 'notes']);
+      allow delete: if isSignedIn();
+    }
+  }
+}
